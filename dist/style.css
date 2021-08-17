@@ -1,0 +1,73 @@
+body {
+  font-family: sans-serif;
+}
+
+body,
+.square {
+  background-color: #bababa;
+  color: #484848;
+}
+
+.status {
+  margin: 1em;
+}
+
+.win-cell {
+  background-color: hsl(205, 75%, 70%);
+}
+
+.square {
+  height: 50px;
+  width: 50px;
+  border: 1px solid black;
+  font-size: 40px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+.reset {
+  margin: 2.5em 7em;
+}
+
+.reset button {
+  padding: 1em 1.5em;
+  background-color: red;
+}
+
+.subgrid,
+.square {
+  text-align: center;
+  font-weight: bold;
+}
+
+.subgrid {
+  font-size: 120px;
+  height: 150px;
+  width: 150px;
+  border: 5px solid black;
+}
+
+.playable {
+  background-color: orange;
+}
+
+table {
+  border: 5px solid black;
+}
+
+.border-bottom {
+  border-bottom: 5px solid black;
+}
+
+.border-right {
+  border-right: 5px solid black;
+}
+
+.large {
+  font-size: 120px;
+  height: 150px;
+  width: 150px;
+  border: 5px solid black;
+}
