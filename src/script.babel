@@ -1,10 +1,37 @@
+/******* Bugs connus *******/
+/*
+ * la première case en haut à gauche (n°0)
+ * match nul sous-grille et board
+ * Reset du timer
+ * Arrêter la partie lorsque le timer d'un joueur est nul.
+ */
+
+function Reset(props) {
+  return (
+    <button onClick={props.onClick}>
+      {props.gameOver ? 'Rejouer' : 'Reset'}
+    </button>
+  );
+}
+
 function Square(props) {
   return (
     <td
       className={props.className}
       onClick={props.onClick}
-      rowSpan={props.size}
-      colSpan={props.size}
+      key={props.id.toString()}
+    >
+      {props.value}
+    </td>
+  );
+}
+
+function LargeSquare(props) {
+  return (
+    <td
+      className={props.className}
+      rowSpan={3}
+      colSpan={3}
       key={props.id.toString()}
     >
       {props.value}
@@ -18,11 +45,12 @@ class Board extends React.Component {
     super(props);
     this.state = {
       squares: Array(81).fill(null),
-      main_grid: Array(9).fill(null),
+      mainGrid: Array(9).fill(null),
       xIsNext: true,
-      win_cells: null, // null or array or winning cell
-      // unused in the class for the moment
-      subgrid_first_cells: [0, 3, 6, 27, 30, 33, 54, 57, 60],
+      isActive: false,
+      winCells: null,
+      gameOver: false,
+      subgridFirstCells: [0, 3, 6, 27, 30, 33, 54, 57, 60],
       subgrids: [
         [0, 1, 2, 9, 10, 11, 18, 19, 20],
         [3, 4, 5, 12, 13, 14, 21, 22, 23],
@@ -34,47 +62,56 @@ class Board extends React.Component {
         [57, 58, 59, 66, 67, 68, 75, 76, 77],
         [60, 61, 62, 69, 70, 71, 78, 79, 80]
       ],
-      playable_subgrid: null,
-      last_cell: null
+      playableSubgrid: null,
+      lastCell: null
     }
   }
   
-  getClassNames(cell) {
-    let class_name = ['square'];
-    const subgrid_id = getSubgridNumber(cell);
+  getClassNames(cell, isLarge) {
+    let className = ['square'];
+    const subgridId = getSubgridNumber(cell);
+    
+    // border class
     if (cell % 9 === 2 || cell % 9 === 5) {
-      class_name.push('border-right');
+      className.push('border-right');
     }
     if (Math.floor(cell / 9) === 2 || Math.floor(cell / 9) === 5) {
-      class_name.push('border-bottom');
+      className.push('border-bottom');
     }
-    //
-    /*
-    if (this.state.win_cells && this.state.win_cells.indexOf(cell) !== -1) {
-      class_name.push('win-cell');
-    }*/
-    if (this.state.main_grid[getSubgridNumber(cell)]) {
-      class_name.push('subgrid');
+    
+    if (isLarge) {
+      className.push('large-square');
     }
-    if (this.state.win_cells) {
-      if (this.state.win_cells.indexOf(subgrid_id) !== -1) {
-        class_name.push('win-cell');
-        return class_name.join(' ');
+    
+    // Special color for last move
+    //   little square
+    if (this.state.lastCell === cell) {
+      className.push('last-cell');
+    }
+    //   large square
+    if (isLarge && getSubgridNumber(this.state.lastCell) === subgridId) {
+      className.push('last-cell');
+    }
+    
+    if (this.state.winCells) {
+      if (this.state.winCells.indexOf(subgridId) !== -1) {
+        className.push('win-cell');
+        return className.join(' ');
       }
     }
-    if (!this.state.win_cells) {
-      if (this.state.playable_subgrid === null) {
-        if (!this.state.main_grid[getSubgridNumber(cell)]) {
-          class_name.push('playable'); 
+    if (!this.state.winCells && this.state.lastCell !== cell) {
+      if (this.state.playableSubgrid === null) {
+        if (!this.state.mainGrid[subgridId]) {
+          className.push('playable'); 
         }
-        return class_name.join(' ');
+        return className.join(' ');
       }
-      if (this.state.subgrids[this.state.playable_subgrid].indexOf(cell) !== -1) {
-        class_name.push('playable');
+      if (this.state.subgrids[this.state.playableSubgrid].indexOf(cell) !== -1) {
+        className.push('playable'); 
       } 
     }
     
-    return class_name.join(' ');
+    return className.join(' ');
   }
   
   nextPlayer() {
@@ -82,90 +119,95 @@ class Board extends React.Component {
   }
   
   handleClick(i) {
-    let win_cells = null;
+    let winCells = null;
     const squares = this.state.squares.slice();
-    const main_grid = this.state.main_grid.slice();
-    const last_played_subgrid = getSubgridNumber(i);
+    const mainGrid = this.state.mainGrid.slice();
+    const lastPlayedSubgrid = getSubgridNumber(i);
     
-    const playable_subgrid = nextSubgrid(this.state.last_cell, main_grid);
-    const next_subgrid = nextSubgrid(i, main_grid);
+    const playableSubgrid = getNextSubgrid(this.state.lastCell, mainGrid);
+    const nextSubgrid = getNextSubgrid(i, mainGrid);
     
-    if (this.state.main_grid[last_played_subgrid]) {
+    if (this.state.mainGrid[lastPlayedSubgrid]) {
       return null;
     }
-    if (playable_subgrid !== null && playable_subgrid !== last_played_subgrid) {
+    if (playableSubgrid !== null && playableSubgrid !== lastPlayedSubgrid) {
       return null;
     }
-    if (this.state.win_cells || squares[i]) {
+    if (this.state.winCells || squares[i]) {
       return null;
     }
-    
     squares[i] = this.nextPlayer();
     // Subgrid won?
-    if (isSubgridWon(squares, this.state.subgrids[last_played_subgrid])) {
-      main_grid[last_played_subgrid] = this.nextPlayer();
+    if (isSubgridWon(squares, this.state.subgrids[lastPlayedSubgrid])) {
+      mainGrid[lastPlayedSubgrid] = this.nextPlayer();
       
       // Game over?
-      const winner = calculateWinner(main_grid);
+      const winner = calculateWinner(mainGrid);
       if (winner) {
-        win_cells = winner[1]; 
+        winCells = winner[1]; 
+        // TODO: isActive = false
       }
     }
     
-    console.log(main_grid);
-    console.log(win_cells);
-    
     this.setState({
       squares: squares,
-      main_grid: main_grid,
+      mainGrid: mainGrid,
       xIsNext: !this.state.xIsNext,
-      playable_subgrid: next_subgrid,
-      last_cell: i,
-      win_cells: win_cells
+      playableSubgrid: nextSubgrid,
+      lastCell: i,
+      winCells: winCells,
+      gameOver: !!winCells,
+      isActive: (squares.indexOf('O') !== -1 && !winCells)
     });
   }
   
   renderSquare(i) {
-    const subgrid_id = getSubgridNumber(i);
-    let size = 1;
-    if (!this.state.main_grid[subgrid_id]) {
+    const subgridId = getSubgridNumber(i);
+    if (!this.state.mainGrid[subgridId]) {
       return (
         <Square
           value={this.state.squares[i]}
-          className={this.getClassNames(i)}
+          className={this.getClassNames(i, false)}
           id={i}
-          size={size}
           onClick={() => this.handleClick(i)}
         />
       );
     }
-    if (this.state.subgrid_first_cells.indexOf(i) === -1) {
+    if (this.state.subgridFirstCells.indexOf(i) === -1) {
       return null;
     }
-    const player = this.state.main_grid[subgrid_id];
-    size = 3;
+    const player = this.state.mainGrid[subgridId];
     return (
-      <Square
+      <LargeSquare
         value={player}
-        className={this.getClassNames(i)}
+        className={this.getClassNames(i, true)}
         id={i}
-        size={size}
-        onClick={() => this.handleClick(i)}
+      />
+    );
+  }
+  
+  reset() {
+    return (
+      <Reset
+        onClick={() => this.resetBoard()}
+        gameOver={this.state.gameOver}
       />
     );
   }
   
   resetBoard() {
     const squares = Array(9).fill(null);
-    const main_grid = Array(9).fill(null);
-    const playable_subgrid = null;
-    const last_cell = null;
+    const mainGrid = Array(9).fill(null);
+    const playableSubgrid = null;
+    const lastCell = null;
     this.setState({
       squares: squares,
-      main_grid: main_grid,
-      playable_subgrid: playable_subgrid,
-      last_cell: last_cell,
-      win_cells: null
+      mainGrid: mainGrid,
+      playableSubgrid: playableSubgrid,
+      lastCell: lastCell,
+      winCells: null,
+      gameOver: false,
+      isActive: false
     });
   }
   
@@ -197,7 +239,7 @@ class Board extends React.Component {
   render() {
     
     let status;
-    if (this.state.win_cells) {
+    if (this.state.gameOver) {
       const player = this.state.xIsNext ? 'O' : 'X';
       status = `Joueur ${player} a gagné !`
     } else if (this.state.squares.indexOf(null) === -1) {
@@ -208,14 +250,18 @@ class Board extends React.Component {
 
     return (
       <div>
-        <div className="status">{status}</div>
+        <div className="status">
+          {status}
+        </div>
+        
         <div className="board">
           {this.renderBoard()}
         </div>
+        <div>
+          <Timer isActive={this.state.isActive} currentPlayer={this.state.xIsNext ? 'X' : 'O'}/>
+        </div>
         <div className="reset">
-          <button onClick={() => this.resetBoard()}>
-            Reset
-          </button>
+          {this.reset()}
         </div>
       </div>
     );
@@ -227,6 +273,33 @@ class Game extends React.Component {
   render() {
     return <Board/>
   }
+}
+
+function Timer(props) {
+  const [seconds, setSeconds] = React.useState({X: 60, O: 60});
+  const interval = 1000;
+  
+  const handleUpdate = () => {
+    seconds[props.currentPlayer]--;
+    setSeconds({...seconds});
+  }
+  
+  React.useEffect(() => {
+    let interval = null;
+    if (props.isActive) {
+      interval = setInterval(() => {
+        handleUpdate();
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [props.isActive, seconds, props.currentPlayer]);
+  
+  return (
+    <div>
+      <p>Joueur X : {seconds['X']} seconds</p>
+      <p>Joueur O : {seconds['O']} seconds</p>
+    </div>
+  );
 }
 
 
@@ -269,31 +342,33 @@ function calculateWinner(squares) {
   * the cell with coordinates [row, column]
   */
 function getSubgridNumber(cell) {
-  let line_number, column_number;
-  [line_number, column_number] = getCoordinates(cell);
-  return Math.floor(line_number / 3) * 3 + Math.floor(column_number / 3);
+  let coordinates = getCoordinates(cell);
+  let lineNumber = coordinates['lineNumber'];
+  let columnNumber = coordinates['columnNumber'];
+  return Math.floor(lineNumber / 3) * 3 + Math.floor(columnNumber / 3);
 }
 
 /* Converts the cell number into coordinates [row, column] */
 function getCoordinates(cell_number) {
-  const line_number = Math.floor(cell_number / 9);
-  const column_number = cell_number % 9;
-  return [line_number, column_number];
+  const lineNumber = Math.floor(cell_number / 9);
+  const columnNumber = cell_number % 9;
+  return {lineNumber: lineNumber, columnNumber: columnNumber};
 }
 
 /* Determines the next sub-grid to be played from the last move played */
-function nextSubgrid(cell, main_grid) {
+function getNextSubgrid(cell, mainGrid) {
   if (!cell) return null;
-  let line_number, column_number;
-  [line_number, column_number] = getCoordinates(cell);
-  line_number %= 3;
-  column_number %= 3;
-  const nextSubgrid = line_number * 3 + column_number;
-  return playableSubgrid(nextSubgrid, main_grid);
+  let coordinates = getCoordinates(cell);
+  let lineNumber = coordinates['lineNumber'];
+  let columnNumber = coordinates['columnNumber'];
+  lineNumber %= 3;
+  columnNumber %= 3;
+  const nextSubgrid = lineNumber * 3 + columnNumber;
+  return playableSubgrid(nextSubgrid, mainGrid);
 }
 
-function playableSubgrid(subgrid_id, main_grid) {
-  return main_grid[subgrid_id] ? null : subgrid_id;
+function playableSubgrid(subgridId, mainGrid) {
+  return mainGrid[subgridId] ? null : subgridId;
 }
 
 function isSubgridWon(grid, indexes) {

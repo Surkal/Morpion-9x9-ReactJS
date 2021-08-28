@@ -2,6 +2,11 @@ body {
   font-family: sans-serif;
 }
 
+#root {
+  display: grid;
+  place-items: center;
+}
+
 body,
 .square {
   background-color: #bababa;
@@ -12,7 +17,8 @@ body,
   margin: 1em;
 }
 
-.win-cell {
+.win-cell,
+.last-cell {
   background-color: hsl(205, 75%, 70%);
 }
 
@@ -34,15 +40,19 @@ table {
 .reset button {
   padding: 1em 1.5em;
   background-color: red;
+  border-radius: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  border-radius: 3.5rem / 100%;
 }
 
-.subgrid,
-.square {
+.square,
+.large-square {
   text-align: center;
   font-weight: bold;
 }
 
-.subgrid {
+.large-square {
   font-size: 120px;
   height: 150px;
   width: 150px;
@@ -64,10 +74,10 @@ table {
 .border-right {
   border-right: 5px solid black;
 }
-
+/*
 .large {
   font-size: 120px;
   height: 150px;
   width: 150px;
   border: 5px solid black;
-}
+}*/
