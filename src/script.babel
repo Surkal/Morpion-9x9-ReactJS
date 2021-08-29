@@ -357,7 +357,7 @@ function getCoordinates(cell_number) {
 
 /* Determines the next sub-grid to be played from the last move played */
 function getNextSubgrid(cell, mainGrid) {
-  if (!cell) return null;
+  if (cell === null) return null;
   let coordinates = getCoordinates(cell);
   let lineNumber = coordinates['lineNumber'];
   let columnNumber = coordinates['columnNumber'];
