@@ -1,6 +1,5 @@
 /******* Bugs connus *******/
 /*
- * la première case en haut à gauche (n°0)
  * match nul sous-grille et board
  * Reset du timer
  * Arrêter la partie lorsque le timer d'un joueur est nul.
@@ -125,7 +124,7 @@ class Board extends React.Component {
     const lastPlayedSubgrid = getSubgridNumber(i);
 
     const playableSubgrid = getNextSubgrid(this.state.lastCell, mainGrid);
-    const nextSubgrid = getNextSubgrid(i, mainGrid);
+    let nextSubgrid = getNextSubgrid(i, mainGrid);
 
     if (this.state.mainGrid[lastPlayedSubgrid]) {
       return null;
@@ -146,6 +145,9 @@ class Board extends React.Component {
       if (winner) {
         winCells = winner[1];
         // TODO: isActive = false
+      } else if (nextSubgrid === lastPlayedSubgrid) {
+        // if the last move played returns to the same sub-grid, we can play anywhere
+        nextSubgrid = null;
       }
     }
 
